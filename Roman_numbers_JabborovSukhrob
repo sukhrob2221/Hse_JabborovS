@@ -1,0 +1,82 @@
+mapping = {"I" : 1, 
+           "V" : 5,
+           "X" : 10,
+           "L" : 50,
+           "C" : 100,
+           "D" : 500,
+           "M" : 1000}
+
+
+def roman_to_decimal(rom):
+  dec=mapping[rom[-1]] 
+    for i in range(len(rom)-1):
+        if(mapping[rom[i]]<mapping.get(rom[i+1])):
+            dec=dec-mapping[rom[i]]
+        else:
+            dec=dec+mapping[rom[i]] 
+            
+              return dec
+              
+   #####################################################
+   
+   #Here are some tests
+   
+   test_pairs = [("XII", 12), ("XI", 11), ("MCXCII", 1192), ("MMXVIII", 2018),
+              ("XLIV", 44), ("MCMXC", 1990), ("MCMXCIV", 1994) ]
+              for rom, dec in test_pairs:
+    converted = roman_to_decimal(rom)
+    print(converted == dec)
+    
+    TRUE
+    
+    
+    revercemapping = {1 : "I", 
+           5 : "V",
+           10 :"X",
+           50 :"L",
+           100: "C" ,
+           500 : "D" ,
+           1000 : "M"}
+           
+           def decimal_to_roman(dec):
+  
+    
+    cdec=int(dec) 
+    rom="" 
+    
+    i=1  
+    while(cdec>0):
+        a=cdec%10 #берем последнюю цифру 
+        if(a>0 and a<4):
+            rom=rom+revermapping[i]*a 
+        if(a==4):
+            rom=rom+revermapping[i*5]+revermapping[i]
+        if(a==5): 
+            rom=rom+revermapping[i*5]
+        if(a>5 and a<9): 
+            rom=rom+revermapping[i]*(a-5)+revermapping[i*5]
+        if(a==9):
+            rom=rom+revermapping[i*10]+revermapping[i] 
+        
+        
+        i=i*10 
+        cdec=cdec//10 
+        
+    rom=rom[::-1]
+    
+    
+    return rom
+    ###########
+    
+    #Here are some tests
+    
+    test_pairs = [("IX", 9), ("XI", 11), ("MCCII", 1202), ("MMXVIII", 2018),
+              ("XLIX", 49), ("MCMXCVIII", 1998), ("MCMXCIV", 1994), ("CMLXXIX", 979), ("CDXLIV", 444), ("MMMDCXLIX", 3649), ("L",50) ]
+
+for rom, dec in test_pairs:
+    converted = decimal_to_roman(dec)
+    print(converted == rom)
+    
+    
+    
+    TRUE
