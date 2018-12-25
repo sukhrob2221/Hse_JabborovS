@@ -1,82 +1,104 @@
-#! /usr/bin/env python3
-
-"""vdw.py - van der Waals fluid functions."""
-
-import numpy
-from numpy import cosh, sinh
-import scipy.optimize
-
-
-# Standard functions ---------------------------------------------------------
-
-def pr(Tr, vr):
-    """Returns the reduced pressure given the reduced temperature and volume."""
-    return 8*Tr/(3*vr-1) - 3/vr**2
-
-
-# Maxwell construction functions ---------------------------------------------
 #
-# Ref: Lekner, AJP (1982).
+# Computes the isotherms of the Van der Waals equation
+# given input constants [a,b]
+#
+# (P + a(n/V)^2) ( V/n - b) = RT
+#
 
-def _params(ds):
-    """Saturation parameters."""
-    y = ds/2
-    f = (y*cosh(y) - sinh(y))/(sinh(y)*cosh(y)-y)
-    c = cosh(y)
-    g = 1 + 2*c*f + f**2
+def van_der_waals_P(V,T,a,b,n):
 
-    return f, c, g
+    nonV = n/V
 
-def Trsat(ds):
-    """Returns the reduced saturation temperature.
-    ds - the entropy change during the phase change; use ds().
-    """
-    f, c, g = _params(ds)
-    return 27/4*f*(c+f)/g**2
+    P = (R*T - a*nonV*nonV)/(1.0/nonV - b)
+    return P
 
-def prsat(ds):
-    """Returns the reduced saturation pressure.
-    ds - the entropy change during the phase change; use ds().
-    """
-    f, c, g = _params(ds)
-    return 27*f**2*(1-f**2)/g**2
+def van_der_waals_T(P,V,a,b,n):
 
-def vrsat(ds):
-    """Returns the saturation volumes.
-    ds - the entropy change during the phase change; use ds().
-    """
+    nonV = n/V
 
-    # Get the reduced saturation temperature and pressure
-    Tr = Trsat(ds)
-    pr = prsat(ds)
-    
-    # The van der Waals equation in cubic form is
-    # a0 + a1 vr + a2 vr^2 + a3 vr^3 = 0
-    # where the coefficients are as follows:
-    a = [1, -((8*Tr/pr)+1)/3, 3/pr, -1/pr]
-    
-    # Get the bounding volumes by finding the roots of the cubic equation
-    return numpy.roots(a)[::-2]    
-        
-def ds(Tr):
-    """Returns the non-dimensional entropy change during the phase transition
-    at the given reduced temperature."""
-    return scipy.optimize.brentq(lambda ds: Trsat(ds)-Tr, 1e-5, 700)   
+    T = (P + a*nonV*nonV)*(1.0/nonV - b)/R
+    return T
 
-def maxwell(Tr, vr, pr):
-    """Applies Maxwell construction to a van der Waals isotherm.
-    Tr - the reduced temperature of the isotherm
-    vr - the reduced volume array
-    pr - the reduced pressure array
-    """
+def van_der_waals_V(P,T,a,b,n):
 
-    # Get the saturation pressure and bounding volumes
-    ds_ = ds(Tr)
-    prsat_ = prsat(ds_)
-    v1, v2 = vrsat(ds_)
+    coeff = [P-b, a, 0.0, -R*T-a*b]
 
-    # Flatten out the pressure between the bounding volumes
-    i1, i2 = numpy.searchsorted(vr, [v1, v2])
-    pr[i1:i2] = prsat_
+    return np.roots(coeff)
 
-    return pr
+
+
+blank = [1.0]
+
+
+# Ideal Gas
+idealgaslabel = 'Ideal Gas'
+aideal=0
+bideal=0
+
+
+# Constants for water
+waterlabel = r'Water (H$_2$O)'
+awater = 553.6
+bwater = 0.03049
+
+# Number of moles
+n=100.0
+# Ideal gas constant (SI)
+R = 8.314
+
+npoints = 100
+
+Pcrit = awater/(27.0*bwater*bwater)
+Tcrit = 8.0*awater/(27*R*bwater)
+
+Vcrit = 3.0*bwater*n
+
+print ("Water Critical Pressure, Temperature, Volume: ",Pcrit/1.0e3, Tcrit,Vcrit)
+
+# Pressure (kiloPascals)
+P = np.linspace(0.1,5.0e1, npoints)
+
+# Volume (Litres)
+V = np.linspace(0.01,50, npoints)
+
+Tideal = np.zeros((npoints,npoints))
+Twater = np.zeros((npoints,npoints))
+
+
+for i in range(npoints):
+    for j in range(npoints):
+
+        Tideal[i,j] = van_der_waals_T(1000.0*P[i],V[j],aideal,bideal,n)
+        Twater[i,j] = van_der_waals_T(1000.0*P[i],V[j],awater,bwater,n)
+
+fig1 = plt.figure(figsize=(8,6))
+fig1.suptitle("Isotherms for "+str(n)+" moles of "+idealgaslabel, fontsize=22)
+ax1 = fig1.add_subplot(111)
+ax1.set_xlabel('Volume (L)',fontsize=22)
+ax1.set_ylabel('Pressure (kPa)',fontsize=22)
+CS1 = ax1.contour(V,P,Tideal, colors='black',levels=list(range(0,1000,50)))
+ax1.plot(blank,blank, color='black', label=r'T(K)') # Dummy plot to add T to legend
+plt.clabel(CS1, inline=1, fmt='%i')
+
+ax1.legend(loc='upper right', fontsize=22)
+
+fig1.savefig('PV_idealgas.png')
+
+fig2 = plt.figure(figsize=(8,6))
+fig2.suptitle("Isotherms for "+str(n)+" moles of "+waterlabel, fontsize=22)
+ax2 = fig2.add_subplot(111)
+ax2.set_xlabel('Volume (L)',fontsize=22)
+ax2.set_ylabel('Pressure (kPa)',fontsize=22)
+CS2 = ax2.contour(V,P,Twater, colors='black',levels=list(range(0,1000,50)))
+CS3 = ax2.contour(V,P,Twater,colors='red', linewidth=2, levels=[Tcrit])
+ax2.plot(blank,blank, color='black', label=r'T(K)') # Dummy plot to add T to legend
+ax2.plot(blank,blank, color='red',linewidth=2, label=r'$T_{\rm crit}$') # Dummy plot to add Tcrit to legend
+ax2.axhline(Pcrit/1.0e3, linestyle='dashed', color = 'green', label = r'$P_{\rm crit}$')
+ax2.axvline(Vcrit, linestyle='dashed', color='blue', label = r'$V_{\rm crit}$')
+
+ax2.legend(loc='upper right',fontsize=22)
+plt.clabel(CS2, inline=1, fmt='%i')
+
+fig2.savefig('PV_water.png')
+
+plt.show()
